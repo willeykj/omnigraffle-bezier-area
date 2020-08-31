@@ -1,0 +1,60 @@
+use AppleScript version "2.4" -- Yosemite (10.10) or later
+use scripting additions
+
+tell application "OmniGraffle"
+	set my_object to selection of the front window
+	set object_name to name of item 1 of my_object
+	if object_name is not "Bezier" then
+		display alert "not a bezier object" message "can only compute area for bezier" buttons {"OK"} default button 1
+		error number -128
+	end if
+	
+	set my_points to point list of item 1 of my_object
+	
+	set transform to 1 / 72
+	set current_min_x to 1000000
+	set current_min_y to 1000000
+	repeat with a from 1 to length of my_points
+		set transformed_x to transform * (item 1 of item a of my_points)
+		set transformed_y to -transform * (item 2 of item a of my_points)
+		
+		if transformed_x ≤ current_min_x then set current_min_x to transformed_x
+		if transformed_y ≤ current_min_y then set current_min_y to transformed_y
+		
+		set item 1 of item a of my_points to transformed_x
+		set item 2 of item a of my_points to transformed_y
+	end repeat
+	
+	set current_max_x to 0
+	set current_max_y to 0
+	repeat with a from 1 to length of my_points
+		set transformed_x to (item 1 of item a of my_points) - current_min_x
+		set transformed_y to (item 2 of item a of my_points) - current_min_y
+		
+		if transformed_x ≥ current_max_x then set current_max_x to transformed_x
+		if transformed_y ≥ current_max_y then set current_max_y to transformed_y
+		
+		set item 1 of item a of my_points to transformed_x
+		set item 2 of item a of my_points to transformed_y
+	end repeat
+	
+	set my_width to current_max_x
+	set my_height to current_max_y
+	
+	set s to 0
+	set list_length to (length of my_points) - 1
+	repeat with a from 1 to list_length
+		set my_x to item 1 of item a of my_points
+		set my_y to item 2 of item a of my_points
+		
+		set next_x to item 1 of item (a + 1) of my_points
+		set next_y to item 2 of item (a + 1) of my_points
+		
+		set s to s + ((my_x * next_y) - (next_x * my_y))
+	end repeat
+	
+	if s < 0 then set s to -1 * s
+	set s to s / 2
+	
+	set value of (user data item "area" of item 1 of my_object) to s as string
+end tell
